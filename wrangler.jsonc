@@ -35,7 +35,20 @@
 	],
 	"observability": {
 		"enabled": true
-	}
+	},
+	"kv_namespaces": [
+		{
+			"binding": "REMINDERS_KV",
+			"id": "694e05c74524481da0923128264fbaa2",
+			"preview_id": "c78a7a139ae04d40912d3c6d83ec3fe9"
+		}
+	],
+	"r2_buckets": [
+		{
+			"bucket_name": "arky-reminders",
+			"binding": "arky_reminders"
+		}
+	]
 	/**
 	 * Smart Placement
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement

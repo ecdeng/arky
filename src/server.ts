@@ -3,6 +3,7 @@ import { routeAgentRequest, type Schedule } from "agents";
 import { getSchedulePrompt } from "agents/schedule";
 
 import { AIChatAgent } from "@cloudflare/ai-chat";
+import { handleSlackEvent } from "./slack";
 import {
   generateId,
   streamText,
@@ -13,17 +14,11 @@ import {
   createUIMessageStreamResponse,
   type ToolSet
 } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { google } from "@ai-sdk/google";
 import { processToolCalls, cleanupMessages } from "./utils";
 import { tools, executions } from "./tools";
-// import { env } from "cloudflare:workers";
 
-const model = openai("gpt-4o-2024-11-20");
-// Cloudflare AI Gateway
-// const openai = createOpenAI({
-//   apiKey: env.OPENAI_API_KEY,
-//   baseURL: env.GATEWAY_BASE_URL,
-// });
+const model = google("gemini-2.5-flash");
 
 /**
  * Chat Agent implementation that handles real-time AI chat interactions
@@ -112,15 +107,20 @@ export default {
   async fetch(request: Request, env: Env, _ctx: ExecutionContext) {
     const url = new URL(request.url);
 
+    // Handle Slack events
+    if (url.pathname === "/slack/events") {
+      return handleSlackEvent(request, env as any, _ctx);
+    }
+
     if (url.pathname === "/check-open-ai-key") {
-      const hasOpenAIKey = !!process.env.OPENAI_API_KEY;
+      const hasGoogleKey = !!process.env.GOOGLE_GENERATIVE_AI_API_KEY;
       return Response.json({
-        success: hasOpenAIKey
+        success: hasGoogleKey
       });
     }
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
       console.error(
-        "OPENAI_API_KEY is not set, don't forget to set it locally in .dev.vars, and use `wrangler secret bulk .dev.vars` to upload it to production"
+        "GOOGLE_GENERATIVE_AI_API_KEY is not set, don't forget to set it locally in .dev.vars, and use `wrangler secret bulk .dev.vars` to upload it to production"
       );
     }
     return (

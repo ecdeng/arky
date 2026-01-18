@@ -40,6 +40,7 @@
 		"wrangler": "^4.59.2"
 	},
 	"dependencies": {
+		"@ai-sdk/google": "^3.0.10",
 		"@ai-sdk/openai": "^3.0.2",
 		"@ai-sdk/react": "^3.0.5",
 		"@cloudflare/ai-chat": "^0.0.3",
