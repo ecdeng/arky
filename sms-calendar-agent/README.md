@@ -1,6 +1,6 @@
-# Local SMS Calendar Agent
+# Local SMS Listing Coordination Agent
 
-This is a small local Flask app that connects a Twilio SMS number to an OpenAI Agents SDK agent and your Google Calendar. It supports direct SMS and, when configured through Twilio Conversations, group MMS. SMS conversation history is stored under `data/conversations.db`; coordination state is stored under `data/coordination.db`; Google Calendar events remain in Google.
+This is a small local Flask app that connects a Twilio SMS number to an OpenAI Agents SDK agent. Arky helps coordinate the work needed to list a home, including availability by text. It supports direct SMS and, when configured through Twilio Conversations, group MMS. It does not connect to a calendar or create events. SMS conversation history is stored under `data/conversations.db`; coordination state is stored under `data/coordination.db`.
 
 ## 1. Install
 
@@ -22,29 +22,12 @@ TWILIO_ACCOUNT_SID=...
 TWILIO_AUTH_TOKEN=...
 TWILIO_PHONE_NUMBER=+1...
 APP_TIMEZONE=America/Los_Angeles
-GOOGLE_CALENDAR_ID=primary
 ```
 
 The app defaults to `gpt-6-luna` for both Arky and its availability summarizer. Set
 `OPENAI_MODEL` to another model ID if you want to change the cost/quality tradeoff.
 
-## 2. Authorize Google Calendar
-
-1. Create or select a project in the [Google Cloud Console](https://console.cloud.google.com/).
-2. Enable the **Google Calendar API**.
-3. Configure the OAuth consent screen. For a personal Gmail account, choose **External** and add your own Google account as a test user.
-4. Create an OAuth client with application type **Desktop app**.
-5. Download the JSON file, save it as `credentials.json` in this directory, and do not commit it.
-
-Then run:
-
-```bash
-python authorize_google.py
-```
-
-A browser window will open for Google consent. The app saves a refresh token at `data/google-token.json`.
-
-## 3. Run locally
+## 2. Run locally
 
 ```bash
 python app.py
@@ -56,7 +39,7 @@ Check that it is running:
 curl http://127.0.0.1:5000/health
 ```
 
-## 4. Expose the webhook during development
+## 3. Expose the webhook during development
 
 In another terminal, expose port 5000 with a tunnel such as ngrok:
 
@@ -72,9 +55,9 @@ Copy the HTTPS forwarding URL, then configure your Twilio phone number:
 4. For the first test, leave `TWILIO_VALIDATE_REQUESTS=false`.
 5. After the webhook works, set it to `true`, restart the app, and make sure `TWILIO_AUTH_TOKEN` is set.
 
-## 5. Enable group chats and availability coordination
+## 4. Enable group chats and availability coordination
 
-The agent can respond in a Twilio Conversations group, privately text selected phone participants for availability, collect their replies, then post a summary back to the originating group. For example: “Arky, find a 30-minute time for Eric and Aaron next week.” The agent only texts phone numbers present in that active group. A group summary suggests supported times; it does not create a calendar event until someone separately confirms one.
+The agent can respond in a Twilio Conversations group, privately text selected phone participants for availability, collect their replies, then post a summary back to the originating group. For example: “Arky, find a 30-minute time for Eric and Aaron next week.” The agent only texts phone numbers present in that active group. It suggests times based only on their text replies; it cannot inspect calendars or create events.
 
 Twilio's ordinary Programmable Messaging webhook does not support native Group MMS. Group MMS is supported through Twilio Conversations (classic) for US/Canada. It is not a way to join arbitrary iMessage, WhatsApp, or other app-based groups; the group must be a supported Twilio Conversations Group MMS conversation. See Twilio's [group MMS/autocreation guide](https://www.twilio.com/docs/conversations-classic/inbound-autocreation).
 
@@ -85,16 +68,15 @@ Twilio's ordinary Programmable Messaging webhook does not support native Group M
 
 For direct SMS and Conversations event delivery to work together, the number and Messaging Service settings must match the Twilio routing setup. Start with a test number/group; don't enable autocreation broadly on a production Messaging Service without understanding its routing effects.
 
-## 6. Try texting it
+## 5. Try texting it
 
 Examples:
 
 ```text
-What do I have coming up?
-What times are free tomorrow for 30 minutes?
-Schedule coffee with Alex tomorrow at 2pm for 45 minutes
-What is event 1?
-Cancel event 1
+Help me plan the remaining tasks to list the house.
+What do we still need to do before photography?
+Arky, coordinate a 30-minute time with Eric and Aaron next week for photos.
+Arky, ask Eric when he can finish retouching the photos.
 ```
 
 Send `RESET` to clear the conversation history for your phone number.
@@ -103,6 +85,4 @@ In a group, the agent can be asked to coordinate availability for named people. 
 
 ## Important scope note
 
-The app uses the Google Calendar `primary` calendar by default and requests the `calendar.events` OAuth scope so it can list, create, and cancel events. Change `GOOGLE_CALENDAR_ID` if you want to use another calendar ID.
-
-For a public deployment, use a durable job queue and add authentication/authorization around calendar access before allowing more than your own phone number. The local app's in-process background worker is intended for prototyping; work can be lost if the process stops while handling a group event.
+Arky coordinates scheduling through texts only. It cannot see anyone's availability unless they provide it by text, and it does not add agreed times to a calendar or send future reminders. Group coordination requires each selected person to reply before a combined summary is posted. The local app's in-process background worker is intended for prototyping; work can be lost if the process stops while handling a group event.
