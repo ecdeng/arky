@@ -68,7 +68,7 @@ npm run deploy
 
 ## SMS listing coordination agent
 
-The repository also includes a standalone local Python service that connects Twilio SMS/Conversations to Google Calendar for real-estate listing coordination (photography, staging, vendors, and related scheduling). See [`examples/sms-calendar-agent/README.md`](./examples/sms-calendar-agent/README.md) for setup and webhook instructions. This service runs separately from the Cloudflare Workers web app.
+The repository also includes a standalone local Python subproject that connects Twilio SMS/Conversations to Google Calendar for real-estate listing coordination (photography, staging, vendors, and related scheduling). See [`sms-calendar-agent/README.md`](./sms-calendar-agent/README.md) for setup and webhook instructions. This service runs separately from the Cloudflare Workers web app.
 
 ## Customization Guide
 
