@@ -17,12 +17,16 @@ Edit `.env` and set at least:
 
 ```bash
 OPENAI_API_KEY=...
+OPENAI_MODEL=gpt-6-luna
 TWILIO_ACCOUNT_SID=...
 TWILIO_AUTH_TOKEN=...
 TWILIO_PHONE_NUMBER=+1...
 APP_TIMEZONE=America/Los_Angeles
 GOOGLE_CALENDAR_ID=primary
 ```
+
+The app defaults to `gpt-6-luna` for both Arky and its availability summarizer. Set
+`OPENAI_MODEL` to another model ID if you want to change the cost/quality tradeoff.
 
 ## 2. Authorize Google Calendar
 
