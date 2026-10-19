@@ -33,6 +33,11 @@ app_timezone = ZoneInfo(os.getenv("APP_TIMEZONE", "America/Los_Angeles"))
 bot_author = os.getenv("TWILIO_BOT_AUTHOR", "Arky")
 openai_model = os.getenv("OPENAI_MODEL", "gpt-6-luna")
 conversations_mode = os.getenv("TWILIO_CONVERSATIONS_MODE", "false").lower() == "true"
+allowed_senders = frozenset(
+    number.strip()
+    for number in os.getenv("TWILIO_ALLOWED_NUMBERS", "").split(",")
+    if number.strip()
+)
 collaboration = CollaborationStore(coordination_db)
 twilio_client: TwilioClient | None = None
 conversation_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="conversation-webhook")
@@ -256,6 +261,10 @@ def valid_twilio_request() -> bool:
     return validator.validate(request.url, request.form, signature)
 
 
+def sender_is_allowed(number: str) -> bool:
+    return bool(number and number in allowed_senders)
+
+
 def twiml_message(text: str) -> Response:
     response = MessagingResponse()
     response.message(text[:1400])
@@ -332,6 +341,10 @@ def sms_webhook() -> Response:
         return Response(status=204)
 
     sender = request.form.get("From", "unknown")
+    if not sender_is_allowed(sender):
+        logger.info("Ignoring inbound SMS from a sender outside TWILIO_ALLOWED_NUMBERS")
+        return Response(str(MessagingResponse()), mimetype="application/xml")
+
     body = request.form.get("Body", "").strip()
     if not collaboration.claim_message(request.form.get("MessageSid", "")):
         return twiml_message("I already received that message.")
@@ -370,11 +383,21 @@ def process_conversation_event(event: dict[str, str]) -> None:
 
     try:
         # Conversation autocreation may route private participant replies here too.
-        if re.fullmatch(r"\+\d{7,15}", author):
-            pending = collaboration.pending_request_for(author)
+        is_phone_author = re.fullmatch(r"\+\d{7,15}", author) is not None
+        pending = collaboration.pending_request_for(author) if is_phone_author else None
+        is_pending_private_reply = bool(
+            pending and pending["parent_conversation_sid"] != conversation_sid
+        )
+        # Non-allowlisted participants may only reply to an active private
+        # availability request; everyone else is ignored, including in groups.
+        if not sender_is_allowed(author) and not is_pending_private_reply:
+            logger.info("Ignoring Conversations message from a sender outside TWILIO_ALLOWED_NUMBERS")
+            return
+
+        if pending:
             handled, acknowledgement = (False, None)
             # Never treat an ordinary message in the parent group as a private reply.
-            if pending and pending["parent_conversation_sid"] != conversation_sid:
+            if is_pending_private_reply:
                 handled, acknowledgement = process_coordination_reply(author, body)
             if handled:
                 if acknowledgement:

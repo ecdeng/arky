@@ -21,8 +21,13 @@ OPENAI_MODEL=gpt-6-luna
 TWILIO_ACCOUNT_SID=...
 TWILIO_AUTH_TOKEN=...
 TWILIO_PHONE_NUMBER=+1...
+TWILIO_ALLOWED_NUMBERS=+15105550100,+15105550101
 APP_TIMEZONE=America/Los_Angeles
 ```
+
+Set `TWILIO_ALLOWED_NUMBERS` to the comma-separated E.164 phone numbers allowed to start
+conversations with Arky. An empty value denies all senders. A person outside the allowlist
+may still reply to an active private availability request Arky sent them from a group chat.
 
 The app defaults to `gpt-6-luna` for both Arky and its availability summarizer. Set
 `OPENAI_MODEL` to another model ID if you want to change the cost/quality tradeoff.
